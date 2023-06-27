@@ -27,12 +27,12 @@ class Bird:
     """
     ゲームキャラクター（こうかとん）に関するクラス
     """
-    delta = {  # 押下キーと移動量の辞書
+    delta = {  # 押下キーと移動量の辞書 どれくらい動くか
         pg.K_UP: (0, -5),
         pg.K_DOWN: (0, +5),
         pg.K_LEFT: (-5, 0),
         pg.K_RIGHT: (+5, 0),
-    }
+    } 
 
     def __init__(self, num: int, xy: tuple[int, int]):
         """
@@ -51,7 +51,7 @@ class Bird:
         self.rct = self.img.get_rect()
         self.rct.center = xy
 
-    def change_img(self, num: int, screen: pg.Surface):
+    def change_img(self, num: int, screen: pg.Surface): # メソッド
         """
         こうかとん画像を切り替え，画面に転送する
         引数1 num：こうかとん画像ファイル名の番号
@@ -107,13 +107,36 @@ class Bomb:
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
 
+class Beam:
+    """
+    こうかとんが放つビームに関するクラス
+    """
+    def __init__(self, bird: Bird):
+        """
+        引数に基づきビームSurfaceを生成する
+        引数 bird：ビームを放つこうかとん
+        """
+        self.img = pg.transform.rotozoom(pg.image.load(f"ex03/fig/beam.png"), 0, 2.0)
+        self.rct = self.img.get_rect()
+        self.rct.left = bird.rct.right
+        self.rct.centery = bird.rct.centery
+        self.vx, self.vy = +5, 0
+
+    def update(self, screen: pg.Surface):
+        """
+        ビームを速度ベクトルself.vx, self.vyに基づき移動させる
+        引数 screen：画面Surface
+        """
+        self.rct.move_ip(self.vx, self.vy)
+        screen.blit(self.img, self.rct)
 
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))    
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
-    bird = Bird(3, (900, 400))
-    bomb = Bomb((255, 0, 0), 10)
+    bird = Bird(3, (900, 400)) # イニシャル引数(三枚目の画像(初期座標x, y))
+    bomb = Bomb((255, 0, 0), 10) # (赤,半径10)
+    beam = None
 
     clock = pg.time.Clock()
     tmr = 0
@@ -121,23 +144,34 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
+            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+                beam = Beam(bird)  # ビームクラスのインスタンスを生成する
         
         screen.blit(bg_img, [0, 0])
         
-        if bird.rct.colliderect(bomb.rct):
-            # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
-            bird.change_img(8, screen)
-            pg.display.update()
-            time.sleep(1)
-            return
+        if bomb is not None:
+            if bird.rct.colliderect(bomb.rct):
+                # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
+                bird.change_img(8, screen)
+                pg.display.update()
+                time.sleep(1)
+                return
+
+        if beam is not None and bomb is not None:
+            if bomb.rct.colliderect(beam.rct):
+                bomb = None
+                beam = None
+        
 
         key_lst = pg.key.get_pressed()
         bird.update(key_lst, screen)
-        bomb.update(screen)
+        if bomb is not None:
+            bomb.update(screen)
+        if beam is not None:
+            beam.update(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
-
 
 if __name__ == "__main__":
     pg.init()
